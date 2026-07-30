@@ -1,0 +1,1039 @@
+import asyncio
+import re
+import pandas as pd
+import os
+import random
+import json
+import time
+from playwright.async_api import async_playwright
+from datetime import datetime
+from collections import defaultdict
+import psutil
+import aiofiles
+
+NUM_PARALLEL_SCRAPERS = 1
+QUERIES_BEFORE_BREAK = 100
+SHORT_BREAK_RANGE = (1, 3)      # OPTIMIZED: Reduced from (2, 5)
+LONG_BREAK_RANGE = (15, 30)     # OPTIMIZED: Reduced from (20, 45)
+
+SKIP_REVIEWS = False
+MAX_PLACES_PER_QUERY = 100  # INCREASED from 20 to 100!
+BATCH_SIZE = 10
+SCROLL_ITERATIONS = 5  # OPTIMIZED: Reduced from 8 to 5
+REVIEW_SCROLL_COUNT = 10
+
+REVIEW_WAIT_AFTER_CLICK = (1.5, 2.5)      # OPTIMIZED: Reduced from (2.5, 4.0)
+REVIEW_TAB_WAIT = (1.0, 1.5)              # OPTIMIZED: Reduced from (2.0, 3)
+REVIEW_SCROLL_DELAY = (0.3, 0.5)          # OPTIMIZED: Reduced from (0.4, 0.6)
+REVIEW_EXPAND_WAIT = (0.8, 1.2)           # OPTIMIZED: Reduced from (1.5, 2)
+REVIEW_FINAL_WAIT = (0.8, 1.2)            # OPTIMIZED: Reduced from (1.5, 2)
+MAX_SCROLL_ATTEMPTS = 7                    # OPTIMIZED: Reduced from 10
+
+ENABLE_AUTO_RETRY = True
+MAX_RETRIES = 3
+ENABLE_PROXY_ROTATION = True
+ENABLE_PROGRESS_TRACKING = True
+ENABLE_QUALITY_CHECKS = True
+CHECKPOINT_INTERVAL = 50
+
+COORDS_PATTERN_PLACE = re.compile(r'!3d(-?[\d\.]+)!4d(-?[\d\.]+)')
+COORDS_PATTERN_VIEW = re.compile(r'@(-?[\d\.]+),(-?[\d\.]+)')
+
+def load_proxies():
+    """Load proxies from proxies.txt file"""
+    proxy_file = os.path.join(os.path.dirname(__file__), 'proxies.txt')
+    try:
+        with open(proxy_file, 'r', encoding='utf-8') as f:
+            return [line.strip() for line in f if line.strip()]
+    except FileNotFoundError:
+        print(f"⚠️  Warning: {proxy_file} not found, using empty proxy list")
+        return []
+
+PROXIES = load_proxies()
+# ---------------------------------------------------------
+# 🗂️ HIERARCHICAL CATEGORIES WITH SUBCATEGORIES
+HIERARCHICAL_CATEGORIES = {
+    "Dining": [
+        "Restaurant", "Fine dining", "Bistro", "Street Food", 
+        "Cafe", "Bakery", "Brunch", "Breakfast spot",
+        "Seafood Restaurant", "Steakhouse", "Tapas Bar", "Sushi Restaurant",
+        "Vegetarian Restaurant", "Vegan Restaurant", "Local Flavor",
+        "Ice Cream Shop", "Dessert Shop", "Pizzeria"
+    ],
+    
+    "Nightlife": [
+        "Bar", "Pub", "Cocktail bar", "Wine bar", 
+        "Nightclub", "Rooftop bar", "Beach bar", 
+        "Speakeasy", "Jazz Club", "Live Music Venue", 
+        "Beer Garden", "Casino", "Sports Bar", "Comedy Club","Karaoke"
+    ],
+    
+    "Parks_Recreation": [
+        "Park", "Garden", "Botanical Garden", "Promenade", 
+        "Beach", "Beach Club", "Marina", "Lake","beach",
+        "Viewpoint", "Observation Deck", "Hiking Trail",
+        "Amusement Park", "Water Park", "Zoo", "Aquarium"
+    ],
+    
+    "Wellness_Lifestyle": [
+        "Gym", "Fitness Center", "Yoga studio", "Pilates Studio",
+        "Spa", "Wellness Center", "Massage", "Sauna", 
+        "Thermal Bath", "Onsen", "Hammam", 
+        "Beauty Salon", "Barber Shop", "Healthy Food Store"
+    ],
+    
+    "Culture": [
+        "things to do","Museum", "Art Gallery", "History Museum", "Science Museum",
+        "Landmark", "Historic Site", "Monument", "Tourist Attraction",
+        "Religious Site", "Synagogue", "Church", "Basilica", "Temple",
+        "Market", "Flea Market", "Street Market", "Shopping Mall",
+        "Theater", "Opera House", "Performance Art Theater"
+    ],
+    
+    "Work_Infrastructure": [
+        "Coworking space", "Cafe with Free WiFi", "Internet Cafe", 
+        "Library", "Work-friendly Cafe", "Business Center"
+    ]
+}
+
+
+# ---------------------------------------------------------
+# 🌍 CITIES (NO NEIGHBORHOODS!)
+# ---------------------------------------------------------
+CITIES = {
+    "tiberias": {
+        "name": "Tiberias, Israel",
+        "coords": "32.7940,35.5312",
+        "zoom": "13z",
+    },
+    "barcelona": {
+        "name": "Barcelona, Spain",
+        "coords": "41.3851,2.1734",
+        "zoom": "12z",
+    },
+    "capetown": {
+        "name": "Cape Town, South Africa",
+        "coords": "-33.9249,18.4241",
+        "zoom": "12z",
+    },
+    "budapest": {
+        "name": "Budapest, Hungary",
+        "coords": "47.4979,19.0402",
+        "zoom": "12z",
+    },
+    "buenosaires": {
+        "name": "Buenos Aires, Argentina",
+        "coords": "-34.6037,-58.3816",
+        "zoom": "12z",
+    },
+    "saopaulo": {
+        "name": "São Paulo, Brazil",
+        "coords": "-23.5505,-46.6333",
+        "zoom": "11z",
+    },
+    "lisbon": {
+        "name": "Lisbon, Portugal",
+        "coords": "38.7223,-9.1393",
+        "zoom": "12z",
+    },
+    "miami": {
+        "name": "Miami, USA",
+        "coords": "25.7617,-80.1918",
+        "zoom": "12z",
+    },
+    "mexicocity": {
+        "name": "Mexico City, Mexico",
+        "coords": "19.4326,-99.1332",
+        "zoom": "11z",
+    },
+    "newyork": {
+        "name": "New York City, USA",
+        "coords": "40.7128,-74.0060",
+        "zoom": "11z",
+    },
+    "phuket": {
+        "name": "Phuket, Thailand",
+        "coords": "7.8804,98.3923",
+        "zoom": "12z",
+    },
+    "sanfrancisco": {
+        "name": "San Francisco, USA",
+        "coords": "37.7749,-122.4194",
+        "zoom": "12z",
+    },
+    "telaviv": {
+        "name": "Tel Aviv, Israel",
+        "coords": "32.0853,34.7818",
+        "zoom": "12z",
+    }
+}
+
+# ---------------------------------------------------------
+# 🔒 THREAD-SAFE FILE OPERATIONS
+# ---------------------------------------------------------
+class ThreadSafeFileManager:
+    def __init__(self):
+        self.locks = defaultdict(asyncio.Lock)
+    
+    async def append_line(self, filename, content):
+        async with self.locks[filename]:
+            try:
+                async with aiofiles.open(filename, 'a', encoding='utf-8') as f:
+                    await f.write(f"{content}\n")
+                    await f.flush()
+            except Exception as e:
+                print(f"⚠️ File write error: {e}")
+    
+    async def read_lines(self, filename):
+        async with self.locks[filename]:
+            try:
+                if not os.path.exists(filename):
+                    return set()
+                
+                async with aiofiles.open(filename, 'r', encoding='utf-8') as f:
+                    content = await f.read()
+                    return set(line.strip() for line in content.split('\n') if line.strip())
+            except Exception as e:
+                print(f"⚠️ File read error: {e}")
+                return set()
+    
+    async def append_to_csv(self, data_list, filepath):
+        if not data_list:
+            return
+        
+        async with self.locks[filepath]:
+            try:
+                new_df = pd.DataFrame(data_list)
+                
+                if ENABLE_QUALITY_CHECKS:
+                    new_df = new_df[new_df['place_name'].str.len() > 2]
+                    new_df = new_df[new_df['rating'] <= 5.0]
+                
+                if os.path.exists(filepath):
+                    try:
+                        existing_df = pd.read_csv(filepath, encoding='utf-8-sig')
+                        combined_df = pd.concat([existing_df, new_df], ignore_index=True)
+                        combined_df = combined_df.drop_duplicates(subset=['place_name', 'url'])
+                        combined_df.to_csv(filepath, index=False, encoding='utf-8-sig')
+                    except:
+                        new_df.to_csv(filepath, index=False, encoding='utf-8-sig')
+                else:
+                    new_df.to_csv(filepath, index=False, encoding='utf-8-sig')
+                    
+            except Exception as e:
+                print(f"⚠️ CSV error: {e}")
+
+file_manager = ThreadSafeFileManager()
+# ---------------------------------------------------------
+# 🔧 ULTRA-ROBUST REVIEW SCRAPING WITH ARIA-LABEL COUNT
+# ---------------------------------------------------------
+async def scrape_reviews_ultra_robust(page, scraper_id, place_name):
+    """
+    Ultra-patient review scraping - extracts review text content only
+    Returns: reviews_content (string)
+    """
+    
+    if SKIP_REVIEWS:
+        return ""
+    
+    reviews_content = ""
+    
+    try:
+        # STEP 1: Wait for place details to fully load
+        wait_time = random.uniform(*REVIEW_WAIT_AFTER_CLICK)
+        await asyncio.sleep(wait_time)
+        
+        # Wait for the main content area to be stable
+        try:
+            await page.wait_for_selector('div[role="main"]', timeout=5000, state='visible')
+        except:
+            pass
+        
+        # STEP 2: Click reviews button to get review content
+        review_button_clicked = False
+        
+        review_button_selectors = [
+            'button.Gpq6kf.NlVald',
+            'button[aria-label*="Reviews"]',
+            'button[aria-label*="reviews"]',
+            'button:has-text("Reviews")',
+            'button.hh2c6',
+            'div[role="tablist"] button:nth-child(2)',
+            'button[data-value="Reviews"]',
+            'button[jsaction*="review"]',
+        ]
+        
+        for selector in review_button_selectors:
+            try:
+                review_tab = page.locator(selector).first
+                
+                if await review_tab.is_visible(timeout=3000):
+                    await review_tab.scroll_into_view_if_needed()
+                    await asyncio.sleep(0.3)
+                    await review_tab.click()
+                    review_button_clicked = True
+                    break
+            except Exception as e:
+                continue
+        
+        if not review_button_clicked:
+            print(f"[S{scraper_id}] ❌ No review button found for: {place_name}")
+            return ""
+        
+        # STEP 3: Wait for reviews section to load
+        wait_time = random.uniform(*REVIEW_TAB_WAIT)
+        await asyncio.sleep(wait_time)
+        
+        # Wait for review content to appear
+        review_appeared = False
+        review_content_selectors = [
+            '.wiI7pd',
+            '.MyEned',
+            'div[data-review-id]',
+            'div[jsaction*="review"]',
+        ]
+        
+        for selector in review_content_selectors:
+            try:
+                await page.wait_for_selector(selector, timeout=5000, state='visible')
+                review_appeared = True
+                break
+            except:
+                continue
+        
+        # STEP 5: Check for "No reviews" messages
+        no_reviews_selectors = [
+            'text="No reviews"',
+            'text="Be the first to review"',
+            'text="No reviews yet"',
+            'div:has-text("No reviews")',
+            'div:has-text("Be the first")',
+        ]
+        
+        for selector in no_reviews_selectors:
+            try:
+                no_review_elem = page.locator(selector).first
+                if await no_review_elem.is_visible(timeout=2000):
+                    print(f"[S{scraper_id}] ℹ️ No reviews available for: {place_name}")
+                    await page.keyboard.press("Escape")
+                    return ""
+            except:
+                continue
+        
+        # STEP 6: Scroll to load more reviews
+        # Calculate how many scrolls we might need
+            estimated_scrolls = MAX_SCROLL_ATTEMPTS
+        
+        previous_review_count = 0
+        no_new_reviews_count = 0
+        
+        for scroll_num in range(estimated_scrolls):
+            # Scroll down
+            await page.keyboard.press("PageDown")
+            
+            # Wait between scrolls
+            scroll_wait = random.uniform(*REVIEW_SCROLL_DELAY)
+            await asyncio.sleep(scroll_wait)
+            
+            # Check if new reviews appeared (OPTIMIZED: check less frequently)
+            if scroll_num % 3 == 0:  # Check every 3 scrolls
+                try:
+                    current_reviews = await page.locator('.wiI7pd').count()
+                    
+                    if current_reviews == previous_review_count:
+                        no_new_reviews_count += 1
+                        if no_new_reviews_count >= 2:
+                            break
+                    else:
+                        no_new_reviews_count = 0
+                    
+                    previous_review_count = current_reviews
+                except:
+                    pass
+        
+        # STEP 6: Wait for scroll to settle (OPTIMIZED)
+        await asyncio.sleep(random.uniform(0.5, 1.0))
+        
+        # STEP 7: Expand "More" buttons (with multiple attempts)
+        
+        expand_button_selectors = [
+            'button.w8nwRe',
+            'button:has-text("More")',
+            'button[aria-label*="See more"]',
+            'button[aria-label*="more"]',
+            'button.lMbq3e',
+        ]
+        
+        # Multiple expansion passes (OPTIMIZED: 2 instead of 3)
+        for expansion_pass in range(2):
+            expanded_count = 0
+            
+            for selector in expand_button_selectors:
+                try:
+                    expand_buttons = await page.locator(selector).all()
+                    
+                    for btn in expand_buttons[:50]:
+                        try:
+                            if await btn.is_visible(timeout=500):
+                                await btn.click(timeout=500)
+                                expanded_count += 1
+                                await asyncio.sleep(0.1)
+                        except:
+                            continue
+                    
+                except:
+                    continue
+            
+            if expansion_pass < 1:
+                await asyncio.sleep(random.uniform(0.3, 0.6))
+        
+        # STEP 8: Final wait for all expansions to render
+        wait_time = random.uniform(*REVIEW_FINAL_WAIT)
+        await asyncio.sleep(wait_time)
+        
+        # STEP 9: Extract review texts with multiple strategies
+        
+        review_text_selectors = [
+            '.wiI7pd',
+            '.MyEned',
+            'span.wiI7pd',
+            'div.MyEned span',
+            'div[data-review-id] span.wiI7pd',
+            'div[jsaction*="review"] .wiI7pd',
+        ]
+        
+        all_review_texts = []
+        
+        for selector_idx, selector in enumerate(review_text_selectors):
+            try:
+                review_elements = await page.locator(selector).all()
+                
+                if review_elements:
+                    for review_elem in review_elements[:100]:
+                        try:
+                            text = await review_elem.inner_text(timeout=1000)
+                            if text:
+                                clean_text = text.replace('\n', ' ').replace('\r', ' ').strip()
+                                
+                                if len(clean_text) > 20 and not clean_text.replace(' ', '').isdigit():
+                                    all_review_texts.append(clean_text)
+                        except:
+                            continue
+                    
+                    if all_review_texts:
+                        break
+            except Exception as e:
+                continue
+        
+        # STEP 10: Deduplicate and clean
+        unique_reviews = []
+        seen = set()
+        
+        for review in all_review_texts:
+            normalized = review.lower().strip()
+            if normalized not in seen and len(normalized) > 20:
+                unique_reviews.append(review)
+                seen.add(normalized)
+        
+        reviews_content = " || ".join(unique_reviews)
+        
+        # STEP 11: Close review panel
+        await page.keyboard.press("Escape")
+        await asyncio.sleep(0.5)
+        
+        return reviews_content
+        
+    except Exception as e:
+        print(f"[S{scraper_id}] ❌ Review extraction failed for '{place_name}': {str(e)[:150]}")
+        
+        try:
+            await page.keyboard.press("Escape")
+        except:
+            pass
+        
+        return ""
+# ---------------------------------------------------------
+# 📊 PROGRESS TRACKER
+# ---------------------------------------------------------
+class ProgressTracker:
+    def __init__(self, total_tasks, num_scrapers):
+        self.total_tasks = total_tasks
+        self.num_scrapers = num_scrapers
+        self.start_time = time.time()
+        
+        self.stats = {
+            'completed': 0,
+            'failed': 0,
+            'skipped': 0,
+            'retried': 0,
+            'places_scraped': 0,
+            'avg_places_per_query': 0,
+            'queries_per_minute': 0,
+            'eta_minutes': 0,
+        }
+        
+        self.lock = asyncio.Lock()
+    
+    async def update(self, scraper_id, status, places_count=0, query_time=0):
+        async with self.lock:
+            if status == 'completed':
+                self.stats['completed'] += 1
+                self.stats['places_scraped'] += places_count
+            elif status == 'failed':
+                self.stats['failed'] += 1
+            elif status == 'skipped':
+                self.stats['skipped'] += 1
+            elif status == 'retried':
+                self.stats['retried'] += 1
+            
+            elapsed = time.time() - self.start_time
+            if self.stats['completed'] > 0:
+                self.stats['avg_places_per_query'] = self.stats['places_scraped'] / self.stats['completed']
+                self.stats['queries_per_minute'] = (self.stats['completed'] / elapsed) * 60
+                
+                remaining = self.total_tasks - (self.stats['completed'] + self.stats['skipped'])
+                if self.stats['queries_per_minute'] > 0:
+                    self.stats['eta_minutes'] = remaining / self.stats['queries_per_minute']
+    
+    def get_summary(self):
+        elapsed = time.time() - self.start_time
+        progress_pct = ((self.stats['completed'] + self.stats['skipped']) / self.total_tasks) * 100
+        
+        return f"""
+╔════════════════════════════════════════════════════════════════╗
+║  📊 PROGRESS                                                   ║
+╠════════════════════════════════════════════════════════════════╣
+║  {progress_pct:.1f}% ({self.stats['completed'] + self.stats['skipped']}/{self.total_tasks})
+║  ✅ {self.stats['completed']}  |  ❌ {self.stats['failed']}  |  ⏭️  {self.stats['skipped']}  |  🔄 {self.stats['retried']}
+║  🏢 {self.stats['places_scraped']} places  |  📍 {self.stats['avg_places_per_query']:.1f} avg/query
+║  ⏱️  {self.stats['queries_per_minute']:.1f}/min  |  ⏳ ETA: {self.stats['eta_minutes']:.0f}min  |  ⏰ {elapsed/60:.1f}min
+╚════════════════════════════════════════════════════════════════╝
+"""
+
+# ---------------------------------------------------------
+# 🔄 PROXY MANAGER
+# ---------------------------------------------------------
+class ProxyManager:
+    def __init__(self, proxies):
+        self.proxies = proxies.copy()
+        self.failed_proxies = set()
+        self.proxy_performance = {p: {'success': 0, 'fail': 0} for p in proxies}
+        self.lock = asyncio.Lock()
+    
+    async def get_proxy(self, current_proxy=None):
+        async with self.lock:
+            available = [p for p in self.proxies if p not in self.failed_proxies]
+            
+            if not available:
+                self.failed_proxies.clear()
+                available = self.proxies.copy()
+            
+            available.sort(key=lambda p: self.proxy_performance[p]['success'], reverse=True)
+            
+            for proxy in available:
+                if proxy != current_proxy:
+                    return proxy
+            
+            return available[0] if available else self.proxies[0]
+    
+    async def report_result(self, proxy, success):
+        async with self.lock:
+            if success:
+                self.proxy_performance[proxy]['success'] += 1
+            else:
+                self.proxy_performance[proxy]['fail'] += 1
+                
+                if self.proxy_performance[proxy]['fail'] > 5:
+                    self.failed_proxies.add(proxy)
+
+# ---------------------------------------------------------
+# 💾 CHECKPOINT MANAGER
+# ---------------------------------------------------------
+class CheckpointManager:
+    def __init__(self, city_key):
+        self.checkpoint_file = f"checkpoint_{city_key}.json"
+        self.lock = asyncio.Lock()
+    
+    async def save_checkpoint(self, data):
+        async with self.lock:
+            try:
+                async with aiofiles.open(self.checkpoint_file, 'w') as f:
+                    await f.write(json.dumps(data, indent=2))
+            except:
+                pass
+    
+    async def load_checkpoint(self):
+        async with self.lock:
+            try:
+                if os.path.exists(self.checkpoint_file):
+                    async with aiofiles.open(self.checkpoint_file, 'r') as f:
+                        content = await f.read()
+                        return json.loads(content)
+            except:
+                pass
+            return None
+    
+    def clear_checkpoint(self):
+        if os.path.exists(self.checkpoint_file):
+            os.remove(self.checkpoint_file)
+
+# ---------------------------------------------------------
+# 🛠️ HELPER FUNCTIONS
+# ---------------------------------------------------------
+def get_city_files(city_key):
+    return {
+        "history": f"search_history_{city_key}.txt",
+        "data": f"{city_key}_final.csv",
+        "failed": f"{city_key}_failed.txt"
+    }
+
+def extract_coords(url):
+    if not url or pd.isna(url):
+        return None, None
+    try:
+        match = COORDS_PATTERN_PLACE.search(url)
+        if match:
+            return float(match.group(1)), float(match.group(2))
+        
+        match = COORDS_PATTERN_VIEW.search(url)
+        if match:
+            return float(match.group(1)), float(match.group(2))
+        
+        return None, None
+    except:
+        return None, None
+
+def parse_proxy(proxy_string):
+    parts = proxy_string.split(':')
+    if len(parts) == 2:
+        return {"server": f"http://{parts[0]}:{parts[1]}"}
+    return None
+
+def generate_city_tasks(city_name):
+    """
+    Generate tasks at CITY LEVEL based on the flat list structure
+    Query format: "Sushi bar in Tokyo, Japan"
+    """
+    tasks = []
+    
+    # התיקון: אנחנו רצים ישירות על הרשימה, בלי לחפש תת-קטגוריות באמצע
+    for main_category, poi_list in HIERARCHICAL_CATEGORIES.items():
+        for poi_type in poi_list:
+            
+            # Since we flattened the structure, subcategory is just the main category name
+            full_category = main_category 
+            
+            tasks.append({
+                "query": f"{poi_type} in {city_name}",
+                "category": full_category,
+                "main_category": main_category,
+                "subcategory": "General", # אין תת קטגוריות במבנה החדש, אז נשים General
+                "poi_type": poi_type
+            })
+    
+    return tasks
+
+# ---------------------------------------------------------
+# 🚀 SCRAPER
+# ---------------------------------------------------------
+async def scrape_places(query, category_info, proxy_config, scraper_id, city_config, 
+                       data_file, proxy_manager, tracker, retry_count=0):
+    
+    query_start_time = time.time()
+    
+    async with async_playwright() as p:
+        browser = None
+        try:
+            browser = await p.chromium.launch(
+                headless=False,
+                channel="chrome",
+                proxy=proxy_config,
+                args=['--disable-blink-features=AutomationControlled']
+            )
+            
+            context = await browser.new_context(
+                viewport={"width": 1920, "height": 1080},
+                user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+            )
+            page = await context.new_page()
+
+            print(f"[S{scraper_id}] 🔎 {query}")
+
+            await page.goto(
+                f"https://www.google.com/maps/search/{query.replace(' ', '+')}/@{city_config['coords']},{city_config['zoom']}?hl=en",
+                timeout=30000
+            )
+
+            try:
+                await page.click('button:has-text("Accept all")', timeout=3000)
+            except:
+                pass
+
+            await page.mouse.move(100, 400)
+            for _ in range(SCROLL_ITERATIONS):
+                await page.mouse.wheel(0, 3000)
+                await asyncio.sleep(random.uniform(0.5, 1.0))  # OPTIMIZED: Reduced from (0.8, 1.5)
+
+            place_elements = await page.locator('a.hfpxzc').all()
+            total_found = len(place_elements)
+            print(f"[S{scraper_id}] ✨ {total_found} places found")
+
+            results = []
+            success_count = 0
+
+            for i in range(min(total_found, MAX_PLACES_PER_QUERY)):
+                try:
+                    el = page.locator('a.hfpxzc').nth(i)
+
+                    try:
+                        await el.scroll_into_view_if_needed(timeout=2000)
+                    except:
+                        await page.mouse.wheel(0, 500)
+                        await asyncio.sleep(0.5)
+
+                    if await el.count() == 0:
+                        continue
+
+                    try:
+                        await el.click(timeout=3000)
+                    except Exception as e:
+                        if "intercepts pointer" in str(e):
+                            await page.keyboard.press("Escape")
+                            await asyncio.sleep(0.5)
+                            await el.click(timeout=3000)
+                        else:
+                            continue
+
+                    # LONGER WAIT after clicking place
+                    wait_time = random.uniform(*REVIEW_WAIT_AFTER_CLICK)
+                    await asyncio.sleep(wait_time)
+
+                    # Extract name
+                    name = ""
+                    name_selectors = [
+                        'div[role="main"] h1.DUwDvf',
+                        'h1.fontHeadlineLarge',
+                        'h1.DUwDvf',
+                    ]
+                    
+                    for name_sel in name_selectors:
+                        try:
+                            name_loc = page.locator(name_sel).first
+                            if await name_loc.is_visible(timeout=2000):
+                                name = await name_loc.inner_text()
+                                if name and "Results" not in name:
+                                    break
+                        except:
+                            continue
+
+                    if not name or "Results" in name:
+                        print(f"[S{scraper_id}] ⚠️ Could not extract name for place {i}")
+                        continue
+
+                    success_count += 1
+                    place_url = page.url
+                    lat, lon = extract_coords(place_url)
+
+                    # Extract rating
+                    rating = 0.0
+                    rating_selectors = [
+                        'div.F7nice span',
+                        'span.ceNzKf',
+                        'div[jsaction*="rating"] span',
+                    ]
+                    
+                    for rating_sel in rating_selectors:
+                        try:
+                            rating_elem = page.locator(rating_sel).first
+                            if await rating_elem.is_visible(timeout=1500):
+                                rating_text = await rating_elem.inner_text()
+                                rating = float(rating_text.split()[0].replace(',', '.'))
+                                break
+                        except:
+                            continue
+
+                    # Extract number of reviews from main page (before clicking reviews)
+                    num_reviews = 0
+                    review_count_selectors = [
+                        'span[role="img"][aria-label*="reviews"]',
+                        'span[role="img"][aria-label*="review"]',
+                        'button[aria-label*="reviews"] span',
+                    ]
+                    
+                    for rev_sel in review_count_selectors:
+                        try:
+                            rev_elem = page.locator(rev_sel).first
+                            if await rev_elem.is_visible(timeout=1500):
+                                aria_label = await rev_elem.get_attribute('aria-label')
+                                if aria_label:
+                                    # Extract number from "768 reviews" or "1,394 reviews"
+                                    import re
+                                    numbers = re.findall(r'([\d,]+)\s*(?:review|Review)', aria_label)
+                                    if numbers:
+                                        num_reviews = int(numbers[0].replace(',', ''))
+                                        break
+                        except:
+                            continue
+
+                    # USE THE ULTRA-ROBUST REVIEW SCRAPER (only for review content)
+                    reviews_content = await scrape_reviews_ultra_robust(page, scraper_id, name)
+
+                    results.append({
+                        "place_name": name,
+                        "url": place_url,
+                        "category": category_info["category"],
+                        "main_category": category_info["main_category"],
+                        "subcategory": category_info["subcategory"],
+                        "poi_type": category_info["poi_type"],
+                        "rating": rating,
+                        "num_of_reviews": num_reviews,
+                        "reviews_content": reviews_content,
+                        "latitude": lat,
+                        "longitude": lon
+                    })
+
+                    if len(results) >= BATCH_SIZE:
+                        await file_manager.append_to_csv(results, data_file)
+                        results = []
+
+                except Exception as e:
+                    print(f"[S{scraper_id}] ❌ Error at place {i}: {str(e)[:100]}")
+                    continue
+
+            if results:
+                await file_manager.append_to_csv(results, data_file)
+
+            # Print review success rate
+
+            await browser.close()
+            
+            query_time = time.time() - query_start_time
+            await tracker.update(scraper_id, 'completed', places_count=success_count, query_time=query_time)
+            
+            if ENABLE_PROXY_ROTATION and proxy_manager:
+                proxy_str = proxy_config['server'].split('//')[1]
+                await proxy_manager.report_result(proxy_str, True)
+            
+            print(f"[S{scraper_id}] ✅ {success_count} places scraped")
+            
+            return True, success_count
+
+        except Exception as e:
+            print(f"[S{scraper_id}] ❌ Fatal error: {str(e)[:100]}")
+            if browser:
+                try:
+                    await browser.close()
+                except:
+                    pass
+            
+            await tracker.update(scraper_id, 'failed')
+            
+            if ENABLE_PROXY_ROTATION and proxy_manager:
+                proxy_str = proxy_config['server'].split('//')[1]
+                await proxy_manager.report_result(proxy_str, False)
+            
+            if ENABLE_AUTO_RETRY and retry_count < MAX_RETRIES:
+                await tracker.update(scraper_id, 'retried')
+                await asyncio.sleep(5 * (retry_count + 1))
+                
+                new_proxy_config = proxy_config
+                if ENABLE_PROXY_ROTATION and proxy_manager:
+                    proxy_str = proxy_config['server'].split('//')[1]
+                    new_proxy = await proxy_manager.get_proxy(proxy_str)
+                    new_proxy_config = parse_proxy(new_proxy)
+                
+                return await scrape_places(
+                    query, category_info, new_proxy_config, scraper_id, 
+                    city_config, data_file, proxy_manager, tracker, retry_count + 1
+                )
+            
+            return False, 0
+# ---------------------------------------------------------
+# 🚀 Scraper Instance
+# ---------------------------------------------------------
+async def run_scraper_instance(scraper_id, tasks, proxy, city_config, files, 
+                               proxy_manager, tracker, checkpoint_mgr):
+    
+    proxy_config = parse_proxy(proxy)
+    print(f"[S{scraper_id}] 🚀 Start | {len(tasks)} tasks | {proxy}")
+    
+    completed = await file_manager.read_lines(files['history'])
+    query_count = 0
+    checkpoint_counter = 0
+    
+    for task in tasks:
+        if task["query"] in completed:
+            await tracker.update(scraper_id, 'skipped')
+            continue
+        
+        category_info = {
+            "category": task["category"],
+            "main_category": task["main_category"],
+            "subcategory": task["subcategory"],
+            "poi_type": task["poi_type"]
+        }
+        
+        success, places_count = await scrape_places(
+            task["query"], 
+            category_info, 
+            proxy_config, 
+            scraper_id, 
+            city_config,
+            files['data'],
+            proxy_manager,
+            tracker
+        )
+        
+        if success:
+            await file_manager.append_line(files['history'], task["query"])
+            query_count += 1
+            checkpoint_counter += 1
+            
+            if checkpoint_counter >= CHECKPOINT_INTERVAL:
+                await checkpoint_mgr.save_checkpoint({
+                    'scraper_id': scraper_id,
+                    'completed': query_count,
+                    'last_query': task["query"],
+                    'timestamp': datetime.now().isoformat()
+                })
+                checkpoint_counter = 0
+            
+            if query_count % 10 == 0 and ENABLE_PROGRESS_TRACKING:
+                print(tracker.get_summary())
+            
+            if query_count % QUERIES_BEFORE_BREAK == 0:
+                wait = random.uniform(*LONG_BREAK_RANGE)
+                await asyncio.sleep(wait)
+            else:
+                wait = random.uniform(*SHORT_BREAK_RANGE)
+                await asyncio.sleep(wait)
+        else:
+            await file_manager.append_line(files['failed'], f"{task['query']} | Max retries | {datetime.now()}")
+            await asyncio.sleep(15)
+    
+    print(f"[S{scraper_id}] ✅ DONE | {query_count} queries")
+
+# ---------------------------------------------------------
+# 🎯 City Scraping
+# ---------------------------------------------------------
+async def scrape_city(city_key, city_config):
+    print("\n" + "="*70)
+    print(f"🌍 SCRAPING: {city_config['name'].upper()}")
+    print("="*70)
+    
+    files = get_city_files(city_key)
+    
+    checkpoint_mgr = CheckpointManager(city_key)
+    proxy_manager = ProxyManager(PROXIES) if ENABLE_PROXY_ROTATION else None
+    
+    # Generate city-level tasks (NO NEIGHBORHOODS!)
+    ALL_TASKS = generate_city_tasks(city_config['name'])
+    
+    random.shuffle(ALL_TASKS)
+    
+    tracker = ProgressTracker(len(ALL_TASKS), NUM_PARALLEL_SCRAPERS)
+    
+    chunk_size = len(ALL_TASKS) // NUM_PARALLEL_SCRAPERS
+    task_chunks = [
+        ALL_TASKS[i * chunk_size:(i + 1) * chunk_size] 
+        for i in range(NUM_PARALLEL_SCRAPERS)
+    ]
+    
+    if len(ALL_TASKS) % NUM_PARALLEL_SCRAPERS:
+        task_chunks[-1].extend(ALL_TASKS[NUM_PARALLEL_SCRAPERS * chunk_size:])
+    
+    print(f"📊 {len(ALL_TASKS)} tasks (city-level queries)")
+    print(f"🎯 Up to {MAX_PLACES_PER_QUERY} places per query")
+    print(f"⚡ Expected: ~{len(ALL_TASKS) / (NUM_PARALLEL_SCRAPERS * 10):.0f} minutes")
+    print(f"📁 Output: {files['data']}\n")
+    
+    selected_proxies = PROXIES[:NUM_PARALLEL_SCRAPERS]
+    
+    scraper_tasks = [
+        run_scraper_instance(
+            i+1, 
+            task_chunks[i], 
+            selected_proxies[i], 
+            city_config,
+            files,
+            proxy_manager,
+            tracker,
+            checkpoint_mgr
+        )
+        for i in range(NUM_PARALLEL_SCRAPERS)
+    ]
+    
+    start = datetime.now()
+    await asyncio.gather(*scraper_tasks)
+    duration = (datetime.now() - start).total_seconds()
+    
+    print(tracker.get_summary())
+    
+    print("\n" + "="*70)
+    print(f"✅ {city_config['name'].upper()} COMPLETED")
+    print(f"⏱️  Duration: {duration/60:.1f} minutes")
+    print(f"📁 Data: {files['data']}")
+    print(f"📊 Total places: {tracker.stats['places_scraped']}")
+    print("="*70)
+    
+    checkpoint_mgr.clear_checkpoint()
+
+# ---------------------------------------------------------
+# 🎯 MAIN
+# ---------------------------------------------------------
+async def main():
+    print("="*70)
+    print("🚀 CITY-LEVEL SCRAPER (NO DISTRICTS)")
+    print("="*70)
+    
+    city_keys = list(CITIES.keys())
+    for i, key in enumerate(city_keys, 1):
+        print(f"{i}. {CITIES[key]['name']}")
+    
+    print("="*70)
+    
+    while True:
+        try:
+            selection = input("\nEnter city number (1-8) or 'all': ").strip().lower()
+            
+            if selection == 'all':
+                print("\n🚀 Running ALL cities...\n")
+                total_start = datetime.now()
+                
+                for city_key, city_config in CITIES.items():
+                    await scrape_city(city_key, city_config)
+                    print("\n⏸️  3 min break...\n")
+                    await asyncio.sleep(180)
+                
+                total_duration = (datetime.now() - total_start).total_seconds()
+                print("\n" + "="*70)
+                print("🎉 ALL CITIES COMPLETED!")
+                print(f"⏱️  Total: {total_duration/60:.1f} minutes ({total_duration/3600:.1f} hours)")
+                print("="*70)
+                break
+            
+            else:
+                choice = int(selection)
+                if 1 <= choice <= len(city_keys):
+                    city_key = city_keys[choice - 1]
+                    await scrape_city(city_key, CITIES[city_key])
+                    break
+                else:
+                    print(f"❌ Enter 1-{len(city_keys)}")
+        
+        except ValueError:
+            print("❌ Invalid input")
+        except KeyboardInterrupt:
+            print("\n\n❌ Cancelled")
+            break
+
+if __name__ == "__main__":
+    # Install aiofiles if needed
+    try:
+        import aiofiles
+    except ImportError:
+        print("📦 Installing aiofiles...")
+        os.system("pip install aiofiles")
+        import aiofiles
+    
+    asyncio.run(main())

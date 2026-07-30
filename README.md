@@ -11,9 +11,18 @@
 
 ## Overview
 
-PersonaMatch is a data-driven scoring system that evaluates Airbnb listings through the needs of different user personas. It combines internal listing data with external urban signals such as Google Maps reviews, neighborhood context, and semantic text analysis.
+PersonaMatch is an end-to-end data engineering and analytics project that scores Airbnb listings through the needs of different traveler personas. It combines internal Airbnb listing data with external urban context from Google Maps, review text, semantic embeddings, spatial features, and persona-specific business logic.
 
-The goal is simple: instead of ranking listings only by generic quality, PersonaMatch estimates how relevant a location is for specific types of travelers.
+Instead of producing one generic listing score, the system asks a more product-focused question: which listing is most relevant for which type of traveler?
+
+## Project Highlights
+
+- Built a complete pipeline from external data collection to Databricks ETL, semantic enrichment, spatial joins, persona scoring, and visual analysis.
+- Combined structured listing attributes with unstructured review text and nearby point-of-interest context.
+- Used GloVe-based semantic vectors and persona-specific lexicons to turn raw text into explainable scoring signals.
+- Designed separate scoring logic for Singles, Couples, Families, and Remote Workers.
+- Preserved executed Databricks notebook outputs so the full analytical story can be reviewed without re-running private data workflows.
+- Kept credentials, SAS tokens, and raw private datasets outside the public repository.
 
 ## Personas
 
@@ -26,52 +35,70 @@ The goal is simple: instead of ranking listings only by generic quality, Persona
 
 ## What Makes It Interesting
 
-- Combines structured Airbnb data with external urban context.
-- Uses semantic text features to interpret reviews and neighborhood descriptions.
-- Separates user expectations from listing reality.
-- Produces persona-specific relevance scores instead of a single generic ranking.
-- Keeps credentials and datasets out of the public repository.
+- It is not only a notebook analysis. It is a full data product workflow: scraping, ingestion, ETL, modeling, explainability, and visualization.
+- The scoring output is persona-aware, making it closer to a real recommendation or ranking engine than a generic EDA exercise.
+- The project shows practical Spark, Python, NLP, geospatial logic, and product analytics in one coherent system.
 
 ## Methodology
 
 ```text
-External and internal data
+External reviews + Airbnb listing data
         |
         v
-Secure Databricks / Azure loading
+Secure Databricks and Azure loading
         |
         v
-Text processing and GloVe-based semantic features
+Spark ETL, cleaning, parsing, and feature preparation
         |
         v
-Persona-specific lexical and contextual matching
+GloVe semantic vectors + persona lexicons
         |
         v
-Spatial and semantic aggregation
+Optimized spatial joins and neighborhood aggregation
         |
         v
-PersonaMatch score per listing
+Persona-specific listing scores and visual insights
 ```
 
 ## Repository Contents
 
 ```text
-PersonaMatch.ipynb   Main Databricks notebook
+PersonaMatch.ipynb   Original full Databricks notebook, preserved as the source notebook
+notebooks/           Split Databricks notebooks organized by workflow stage
+google_maps_review_scraper.py
+                     Async Playwright scraper used for Google Maps place and review collection
 README.md            Project documentation
 ```
 
+## Notebook Organization
+
+The original `PersonaMatch.ipynb` is kept unchanged. The `notebooks/` directory contains the same executed notebook cells split into focused, recruiter-friendly notebooks. Saved outputs and execution counts are preserved from the original Databricks run.
+
+| Notebook | Focus |
+| --- | --- |
+| `01_ingest.ipynb` | Configuration, package setup, GloVe loading, and raw city data loading |
+| `02_external_eda.ipynb` | External review quality, rating, length, and semantic analysis |
+| `03_etl_pipeline.ipynb` | External and internal data cleaning, parsing, filtering, and preparation |
+| `04_persona_lexicon.ipynb` | Persona dictionaries and phrase-based word-cloud analysis |
+| `05_scoring_model.ipynb` | Vectorization, spatial joins, full scoring, and internal-only scoring |
+| `06_visual_insights.ipynb` | Impact analysis, persona distributions, heatmaps, zones, KDE plots, and interactive maps |
+
 ## Data And Security
 
-The public repository intentionally does not include:
+The public repository intentionally excludes:
 
 - Private datasets.
 - Azure SAS tokens.
 - API credentials.
 - Raw external review exports.
 
-The notebook is published as code only, with sensitive configuration removed or expected to be supplied locally.
+Sensitive configuration is removed or expected to be supplied locally. The split notebooks include saved outputs from the previous Databricks execution where those outputs were already stored in the original `.ipynb`.
 
-## How To Run
+## How To Review
+
+For a fast portfolio review, open the notebooks in `notebooks/` in numeric order. They are organized to show the project story from ingestion to final visual insights, without requiring access to private Databricks data.
+
+For the original full workflow in Databricks:
 
 1. Upload `PersonaMatch.ipynb` to Databricks.
 2. Configure the required Azure / Databricks storage access.
@@ -80,7 +107,7 @@ The notebook is published as code only, with sensitive configuration removed or 
 
 ## Portfolio Summary
 
-Built a persona-aware Airbnb scoring system that combines listing data, external urban context, Google Maps review signals, and semantic text features to produce personalized location scores for different traveler types.
+Built a persona-aware Airbnb scoring system that combines listing data, external urban context, Google Maps review signals, semantic text features, and geospatial aggregation to produce traveler-specific listing scores.
 
 <div align="center">
 
