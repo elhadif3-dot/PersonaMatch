@@ -3,6 +3,7 @@
 ![PersonaMatch Banner](https://capsule-render.vercel.app/api?type=waving&color=0:00C2FF,50:7C3AED,100:FF4D6D&height=170&section=header&text=PersonaMatch&fontSize=48&fontColor=ffffff&animation=fadeIn&fontAlignY=38&desc=Persona-aware%20urban%20context%20scoring%20for%20Airbnb%20listings&descSize=16&descAlignY=60)
 
 [![Live Demo](https://img.shields.io/badge/Live%20Demo-Open%20App-00C853?style=for-the-badge)](https://persona-match-6b33514a.base44.app)
+[![Interactive Maps](https://img.shields.io/badge/Interactive%20Maps-Open%20in%20nbviewer-00A67E?style=for-the-badge)](https://nbviewer.org/github/elhadif3-dot/PersonaMatch/blob/main/06_visual_insights.ipynb)
 ![Python](https://img.shields.io/badge/Python-3.9%2B-3776AB?style=for-the-badge&logo=python&logoColor=white)
 ![Databricks](https://img.shields.io/badge/Databricks-Data%20Pipeline-FF3621?style=for-the-badge&logo=databricks&logoColor=white)
 ![Azure](https://img.shields.io/badge/Azure-External%20Storage-0078D4?style=for-the-badge&logo=microsoftazure&logoColor=white)
@@ -109,6 +110,10 @@ Sensitive configuration is removed or expected to be supplied locally. The split
 ## How To Review
 
 For a fast portfolio review, open the numbered notebooks in order from the repository root. They are organized to show the project story from ingestion to final visual insights, without requiring access to private Databricks data.
+
+GitHub renders notebooks as static HTML, so the Folium maps in `06_visual_insights.ipynb` are best viewed through nbviewer:
+
+[![Open Interactive Visualizations](https://img.shields.io/badge/Open%20Interactive%20Visualizations-nbviewer-00A67E?style=for-the-badge)](https://nbviewer.org/github/elhadif3-dot/PersonaMatch/blob/main/06_visual_insights.ipynb)
 
 For the original full workflow in Databricks:
 
