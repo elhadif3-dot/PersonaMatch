@@ -22,7 +22,7 @@ Instead of producing one generic listing score, the system asks a more product-f
 - Combined structured listing attributes with unstructured review text and nearby point-of-interest context.
 - Used GloVe-based semantic vectors and persona-specific lexicons to turn raw text into explainable scoring signals.
 - Designed separate scoring logic for Singles, Couples, Families, and Remote Workers.
-- Preserved executed Databricks notebook outputs so the full analytical story can be reviewed without re-running private data workflows.
+- Includes executed Databricks outputs so the full analytical story can be reviewed without accessing private data workflows.
 - Kept credentials, SAS tokens, and raw private datasets outside the public repository.
 
 ## Personas
@@ -76,7 +76,7 @@ README.md                    Project documentation
 
 ## Notebook Organization
 
-The original monolithic Databricks notebook was split into focused, recruiter-friendly notebooks and removed from the repository to keep the project easier to review. Saved outputs and execution counts are preserved from the original Databricks run.
+The Databricks workflow is organized into focused, recruiter-friendly notebooks that make the project easy to review from ingestion through final visual insights. Key executed outputs are included where available.
 
 | Notebook | Focus |
 | --- | --- |
@@ -105,7 +105,7 @@ The public repository intentionally excludes:
 - API credentials.
 - Raw external review exports.
 
-Sensitive configuration is removed or expected to be supplied locally. The split notebooks include saved outputs from the previous Databricks execution where those outputs were already stored in the original `.ipynb`.
+Sensitive configuration is removed or expected to be supplied locally. The notebooks include saved outputs from the Databricks workflow where available.
 
 ## How To Review
 
@@ -115,9 +115,9 @@ GitHub renders notebooks as static HTML, so the Folium maps in `06_visual_insigh
 
 [![Open Interactive Visualizations](https://img.shields.io/badge/Open%20Interactive%20Visualizations-nbviewer-00A67E?style=for-the-badge)](https://nbviewer.org/github/elhadif3-dot/PersonaMatch/blob/main/06_visual_insights.ipynb)
 
-For the original full workflow in Databricks:
+To run the full workflow in Databricks:
 
-1. Upload the numbered notebooks to Databricks in order, or combine them back into one workflow if preferred.
+1. Upload the numbered notebooks to Databricks in order, or run them as one sequential workflow if preferred.
 2. Configure the required Azure / Databricks storage access.
 3. Run the notebook cells in numeric order.
 4. Open the live demo to inspect the product-facing concept.
