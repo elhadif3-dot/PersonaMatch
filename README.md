@@ -4,6 +4,7 @@
 
 [![Live Demo](https://img.shields.io/badge/Live%20Demo-Open%20App-00C853?style=for-the-badge)](https://persona-match-6b33514a.base44.app)
 [![Interactive Maps](https://img.shields.io/badge/Interactive%20Maps-Open%20in%20nbviewer-00A67E?style=for-the-badge)](https://nbviewer.org/github/elhadif3-dot/PersonaMatch/blob/main/06_visual_insights.ipynb)
+[![HTML Report](https://img.shields.io/badge/HTML%20Report-Visual%20Insights-FF6B6B?style=for-the-badge)](interactive_visual_insights.html)
 ![Python](https://img.shields.io/badge/Python-3.9%2B-3776AB?style=for-the-badge&logo=python&logoColor=white)
 ![Databricks](https://img.shields.io/badge/Databricks-Data%20Pipeline-FF3621?style=for-the-badge&logo=databricks&logoColor=white)
 ![Azure](https://img.shields.io/badge/Azure-External%20Storage-0078D4?style=for-the-badge&logo=microsoftazure&logoColor=white)
@@ -70,6 +71,8 @@ Persona-specific listing scores and visual insights
 04_persona_lexicon.ipynb     Persona dictionaries and phrase-based text signals
 05_scoring_model.ipynb       Spatial joins, semantic scoring, and final persona model
 06_visual_insights.ipynb     Impact analysis, maps, heatmaps, KDE plots, and visual outputs
+interactive_visual_insights.html
+                             HTML export of the visual insights notebook
 data_collection/             External data collection assets and a compact data sample
 README.md                    Project documentation
 ```
@@ -114,6 +117,8 @@ For a fast portfolio review, open the numbered notebooks in order from the repos
 GitHub renders notebooks as static HTML, so the Folium maps in `06_visual_insights.ipynb` are best viewed through nbviewer:
 
 [![Open Interactive Visualizations](https://img.shields.io/badge/Open%20Interactive%20Visualizations-nbviewer-00A67E?style=for-the-badge)](https://nbviewer.org/github/elhadif3-dot/PersonaMatch/blob/main/06_visual_insights.ipynb)
+
+An HTML export is also included as `interactive_visual_insights.html` for local viewing or GitHub Pages-style hosting.
 
 To run the full workflow in Databricks:
 
