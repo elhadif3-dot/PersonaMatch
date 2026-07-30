@@ -63,16 +63,19 @@ Persona-specific listing scores and visual insights
 ## Repository Contents
 
 ```text
-PersonaMatch.ipynb   Original full Databricks notebook, preserved as the source notebook
-notebooks/           Split Databricks notebooks organized by workflow stage
-google_maps_review_scraper.py
-                     Async Playwright scraper used for Google Maps place and review collection
-README.md            Project documentation
+01_ingest.ipynb              Databricks setup, embeddings, and raw city loading
+02_external_eda.ipynb        External review and rating exploratory analysis
+03_etl_pipeline.ipynb        Spark ETL, cleaning, parsing, and feature preparation
+04_persona_lexicon.ipynb     Persona dictionaries and phrase-based text signals
+05_scoring_model.ipynb       Spatial joins, semantic scoring, and final persona model
+06_visual_insights.ipynb     Impact analysis, maps, heatmaps, KDE plots, and visual outputs
+data_collection/             External data collection assets and a compact data sample
+README.md                    Project documentation
 ```
 
 ## Notebook Organization
 
-The original `PersonaMatch.ipynb` is kept unchanged. The `notebooks/` directory contains the same executed notebook cells split into focused, recruiter-friendly notebooks. Saved outputs and execution counts are preserved from the original Databricks run.
+The original monolithic Databricks notebook was split into focused, recruiter-friendly notebooks and removed from the repository to keep the project easier to review. Saved outputs and execution counts are preserved from the original Databricks run.
 
 | Notebook | Focus |
 | --- | --- |
@@ -82,6 +85,15 @@ The original `PersonaMatch.ipynb` is kept unchanged. The `notebooks/` directory 
 | `04_persona_lexicon.ipynb` | Persona dictionaries and phrase-based word-cloud analysis |
 | `05_scoring_model.ipynb` | Vectorization, spatial joins, full scoring, and internal-only scoring |
 | `06_visual_insights.ipynb` | Impact analysis, persona distributions, heatmaps, zones, KDE plots, and interactive maps |
+
+## Data Collection
+
+The `data_collection/` directory includes:
+
+| File | Purpose |
+| --- | --- |
+| `google_maps_review_scraper.py` | Async Playwright scraper used to collect Google Maps places and review text |
+| `data_example.csv` | Compact sample of the external data structure collected for Barcelona |
 
 ## Data And Security
 
@@ -96,13 +108,13 @@ Sensitive configuration is removed or expected to be supplied locally. The split
 
 ## How To Review
 
-For a fast portfolio review, open the notebooks in `notebooks/` in numeric order. They are organized to show the project story from ingestion to final visual insights, without requiring access to private Databricks data.
+For a fast portfolio review, open the numbered notebooks in order from the repository root. They are organized to show the project story from ingestion to final visual insights, without requiring access to private Databricks data.
 
 For the original full workflow in Databricks:
 
-1. Upload `PersonaMatch.ipynb` to Databricks.
+1. Upload the numbered notebooks to Databricks in order, or combine them back into one workflow if preferred.
 2. Configure the required Azure / Databricks storage access.
-3. Run the notebook cells in order.
+3. Run the notebook cells in numeric order.
 4. Open the live demo to inspect the product-facing concept.
 
 ## Portfolio Summary
