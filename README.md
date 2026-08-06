@@ -118,6 +118,9 @@ GitHub renders notebooks as static HTML, so the interactive Folium maps are best
 
 [![Open Interactive Visualizations](https://img.shields.io/badge/Open%20Interactive%20Visualizations-HTML%20Preview-00A67E?style=for-the-badge)](https://htmlpreview.github.io/?https://github.com/elhadif3-dot/PersonaMatch/blob/main/interactive_visual_insights.html)
 
+Direct HTML preview link:
+https://htmlpreview.github.io/?https://github.com/elhadif3-dot/PersonaMatch/blob/main/interactive_visual_insights.html
+
 The source notebook is also available directly on GitHub:
 
 [![Open Visual Notebook](https://img.shields.io/badge/Open%20Visual%20Notebook-GitHub-24292F?style=for-the-badge)](https://github.com/elhadif3-dot/PersonaMatch/blob/main/06_visual_insights.ipynb)
