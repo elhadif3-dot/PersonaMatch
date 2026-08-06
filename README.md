@@ -4,7 +4,7 @@
 
 [![Live Demo](https://img.shields.io/badge/Live%20Demo-Open%20App-00C853?style=for-the-badge)](https://persona-match-6b33514a.base44.app)
 [![Visual Notebook](https://img.shields.io/badge/Visual%20Notebook-Open%20on%20GitHub-00A67E?style=for-the-badge)](https://github.com/elhadif3-dot/PersonaMatch/blob/main/06_visual_insights.ipynb)
-[![HTML Report](https://img.shields.io/badge/HTML%20Report-Interactive%20Visuals-FF6B6B?style=for-the-badge)](https://htmlpreview.github.io/?https://github.com/elhadif3-dot/PersonaMatch/blob/main/interactive_visual_insights.html)
+[![HTML Report](https://img.shields.io/badge/HTML%20Report-Interactive%20Visuals-FF6B6B?style=for-the-badge)](https://htmlpreview.github.io/?https://github.com/elhadif3-dot/PersonaMatch/blob/main/interactive_visual_insights_export.html)
 ![Python](https://img.shields.io/badge/Python-3.9%2B-3776AB?style=for-the-badge&logo=python&logoColor=white)
 ![Databricks](https://img.shields.io/badge/Databricks-Data%20Pipeline-FF3621?style=for-the-badge&logo=databricks&logoColor=white)
 ![Azure](https://img.shields.io/badge/Azure-External%20Storage-0078D4?style=for-the-badge&logo=microsoftazure&logoColor=white)
@@ -72,7 +72,9 @@ Persona-specific listing scores and visual insights
 05_scoring_model.ipynb       Spatial joins, semantic scoring, and final persona model
 06_visual_insights.ipynb     Impact analysis, maps, heatmaps, KDE plots, and visual outputs
 interactive_visual_insights.html
-                             HTML export of the visual insights notebook
+                             Lightweight launcher for the interactive HTML report
+interactive_visual_insights_export.html
+                             Full HTML export of the visual insights notebook
 data_collection/             External data collection assets and a compact data sample
 README.md                    Project documentation
 ```
@@ -116,10 +118,10 @@ For a fast portfolio review, open the numbered notebooks in order from the repos
 
 GitHub renders notebooks as static HTML, so the interactive Folium maps are best viewed through the HTML export:
 
-[![Open Interactive Visualizations](https://img.shields.io/badge/Open%20Interactive%20Visualizations-HTML%20Preview-00A67E?style=for-the-badge)](https://htmlpreview.github.io/?https://github.com/elhadif3-dot/PersonaMatch/blob/main/interactive_visual_insights.html)
+[![Open Interactive Visualizations](https://img.shields.io/badge/Open%20Interactive%20Visualizations-HTML%20Preview-00A67E?style=for-the-badge)](https://htmlpreview.github.io/?https://github.com/elhadif3-dot/PersonaMatch/blob/main/interactive_visual_insights_export.html)
 
 Direct HTML preview link:
-https://htmlpreview.github.io/?https://github.com/elhadif3-dot/PersonaMatch/blob/main/interactive_visual_insights.html
+https://htmlpreview.github.io/?https://github.com/elhadif3-dot/PersonaMatch/blob/main/interactive_visual_insights_export.html
 
 The source notebook is also available directly on GitHub:
 
