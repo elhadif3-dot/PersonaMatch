@@ -3,6 +3,7 @@
 ![PersonaMatch Banner](https://capsule-render.vercel.app/api?type=waving&color=0:00C2FF,50:7C3AED,100:FF4D6D&height=170&section=header&text=PersonaMatch&fontSize=48&fontColor=ffffff&animation=fadeIn&fontAlignY=38&desc=Persona-aware%20urban%20context%20scoring%20for%20Airbnb%20listings&descSize=16&descAlignY=60)
 
 [![Live Demo](https://img.shields.io/badge/Live%20Demo-Open%20App-00C853?style=for-the-badge)](https://persona-match-6b33514a.base44.app)
+[![Scraper Video](https://img.shields.io/badge/Scraper%20Video-Watch%20in%20Drive-4285F4?style=for-the-badge&logo=googledrive&logoColor=white)](https://drive.google.com/file/d/1Q1F-lTSpawZMVKHFGbKJkMCA6dJ1_8kt/view?usp=sharing)
 [![Visual Notebook](https://img.shields.io/badge/Visual%20Notebook-Open%20on%20GitHub-00A67E?style=for-the-badge)](https://github.com/elhadif3-dot/PersonaMatch/blob/main/06_visual_insights.ipynb)
 [![HTML Report](https://img.shields.io/badge/HTML%20Report-Interactive%20Visuals-FF6B6B?style=for-the-badge)](https://htmlpreview.github.io/?https://github.com/elhadif3-dot/PersonaMatch/blob/main/interactive_visual_insights_export.html)
 ![Python](https://img.shields.io/badge/Python-3.9%2B-3776AB?style=for-the-badge&logo=python&logoColor=white)
@@ -23,6 +24,7 @@ Instead of producing one generic listing score, the system asks a more product-f
 - Combined structured listing attributes with unstructured review text and nearby point-of-interest context.
 - Used GloVe-based semantic vectors and persona-specific lexicons to turn raw text into explainable scoring signals.
 - Designed separate scoring logic for Singles, Couples, Families, and Remote Workers.
+- Captured the Playwright scraping workflow in a short demo video for reviewers who want to see collection in action.
 - Includes executed Databricks outputs so the full analytical story can be reviewed without accessing private data workflows.
 - Kept credentials, SAS tokens, and raw private datasets outside the public repository.
 
@@ -40,6 +42,12 @@ Instead of producing one generic listing score, the system asks a more product-f
 - It is not only a notebook analysis. It is a full data product workflow: scraping, ingestion, ETL, modeling, explainability, and visualization.
 - The scoring output is persona-aware, making it closer to a real recommendation or ranking engine than a generic EDA exercise.
 - The project shows practical Spark, Python, NLP, geospatial logic, and product analytics in one coherent system.
+
+## Scraper In Action
+
+The external Google Maps collection workflow runs as an async Playwright scraper with parallel browser automation, checkpointing, and structured CSV output.
+
+[![Watch Scraper Demo](https://img.shields.io/badge/Watch%20Scraper%20Demo-Google%20Drive-4285F4?style=for-the-badge&logo=googledrive&logoColor=white)](https://drive.google.com/file/d/1Q1F-lTSpawZMVKHFGbKJkMCA6dJ1_8kt/view?usp=sharing)
 
 ## Methodology
 
@@ -100,6 +108,22 @@ The `data_collection/` directory includes:
 | --- | --- |
 | `google_maps_review_scraper.py` | Async Playwright scraper used to collect Google Maps places and review text |
 | `data_example.csv` | Compact sample of the external data structure collected for Barcelona |
+
+## Visual Highlights
+
+The strongest visual outputs are the persona-aware spatial maps and the persona-specific text signal dictionaries. They show both sides of the product logic: where each traveler type clusters geographically and which words or phrases explain the score.
+
+<p align="center">
+  <img src="assets/readme/persona_spatial_heatmaps.png" alt="Persona-specific spatial heatmaps over Barcelona" width="92%">
+</p>
+
+<p align="center">
+  <img src="assets/readme/persona_text_signals.png" alt="Positive and negative phrase-based persona dictionaries" width="82%">
+</p>
+
+For the interactive map experience, open the full visual report:
+
+[![Open Interactive Map Report](https://img.shields.io/badge/Open%20Interactive%20Map%20Report-HTML%20Preview-00A67E?style=for-the-badge)](https://htmlpreview.github.io/?https://github.com/elhadif3-dot/PersonaMatch/blob/main/interactive_visual_insights_export.html)
 
 ## Data And Security
 
