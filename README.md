@@ -141,13 +141,6 @@ Sensitive configuration is removed or expected to be supplied locally. The noteb
 
 For a fast portfolio review, open the numbered notebooks in order from the repository root. They are organized to show the project story from ingestion to final visual insights, without requiring access to private Databricks data.
 
-GitHub renders notebooks as static HTML, so the interactive Folium maps are best viewed through the HTML export:
-
-[![Open Interactive Visualizations](https://img.shields.io/badge/Open%20Interactive%20Visualizations-HTML%20Preview-00A67E?style=for-the-badge)](https://htmlpreview.github.io/?https://github.com/elhadif3-dot/PersonaMatch/blob/main/interactive_visual_insights_export.html)
-
-Direct HTML preview link:
-https://htmlpreview.github.io/?https://github.com/elhadif3-dot/PersonaMatch/blob/main/interactive_visual_insights_export.html
-
 To run the full workflow in Databricks:
 
 1. Upload the numbered notebooks to Databricks in order, or run them as one sequential workflow if preferred.
