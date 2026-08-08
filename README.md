@@ -2,7 +2,7 @@
 
 ![PersonaMatch Banner](https://capsule-render.vercel.app/api?type=waving&color=0:00C2FF,50:7C3AED,100:FF4D6D&height=170&section=header&text=PersonaMatch&fontSize=48&fontColor=ffffff&animation=fadeIn&fontAlignY=38&desc=Persona-aware%20urban%20context%20scoring%20for%20Airbnb%20listings&descSize=16&descAlignY=60)
 
-[![Interactive Visual Insights](https://img.shields.io/badge/Interactive%20Visual%20Insights-Start%20Here-FF6B6B?style=for-the-badge)](https://htmlpreview.github.io/?https://github.com/elhadif3-dot/PersonaMatch/blob/main/interactive_visual_insights_export.html)
+[![Interactive Visual Insights](https://img.shields.io/badge/Interactive%20Visual%20Insights-Explore%20Report-FF6B6B?style=for-the-badge)](https://htmlpreview.github.io/?https://github.com/elhadif3-dot/PersonaMatch/blob/main/interactive_visual_insights_export.html)
 [![Live Demo](https://img.shields.io/badge/Live%20Demo-Open%20App-00C853?style=for-the-badge)](https://persona-match-6b33514a.base44.app)
 [![Scraper Video](https://img.shields.io/badge/Scraper%20Video-Watch%20in%20Drive-4285F4?style=for-the-badge&logo=googledrive&logoColor=white)](https://drive.google.com/file/d/1Q1F-lTSpawZMVKHFGbKJkMCA6dJ1_8kt/view?usp=sharing)
 ![Python](https://img.shields.io/badge/Python-3.9%2B-3776AB?style=for-the-badge&logo=python&logoColor=white)
@@ -13,11 +13,11 @@
 
 ## Overview
 
-> 🚀 **Start here:** [Open the Interactive Visual Insights report](https://htmlpreview.github.io/?https://github.com/elhadif3-dot/PersonaMatch/blob/main/interactive_visual_insights_export.html). After opening it, scroll down and focus especially on the dynamic persona maps near the bottom of the report.
-
 PersonaMatch is an end-to-end data engineering and analytics project that scores Airbnb listings through the needs of different traveler personas. It combines internal Airbnb listing data with external urban context from Google Maps, review text, semantic embeddings, spatial features, and persona-specific business logic.
 
 Instead of producing one generic listing score, the system asks a more product-focused question: which listing is most relevant for which type of traveler?
+
+> 🗺️ **Interactive Visual Insights:** [Open the visual report](https://htmlpreview.github.io/?https://github.com/elhadif3-dot/PersonaMatch/blob/main/interactive_visual_insights_export.html) to see the visualizations that best demonstrate the relevance of the project. Do not miss the dynamic persona maps near the bottom of the report; below them, the report continues with deeper insight into what the maps reveal.
 
 ## Project Highlights
 
